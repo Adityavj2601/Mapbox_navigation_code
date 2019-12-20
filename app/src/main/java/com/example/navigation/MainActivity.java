@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 // classes needed to initialize map
 import com.mapbox.api.directions.v5.models.LegStep;
+import com.mapbox.api.directions.v5.models.VoiceInstructions;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -59,6 +60,8 @@ import com.mapbox.services.android.navigation.ui.v5.voice.SpeechAnnouncement;
 import com.mapbox.services.android.navigation.v5.instruction.Instruction;
 import com.mapbox.services.android.navigation.v5.milestone.Milestone;
 import com.mapbox.services.android.navigation.v5.milestone.MilestoneEventListener;
+import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation;
+import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions;
 import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 import com.mapbox.api.directions.v5.models.DirectionsResponse;
 import com.mapbox.api.directions.v5.models.DirectionsRoute;
@@ -105,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private long DEFAULT_MAX_WAIT_TIME = DEFAULT_INTERVAL_IN_MILLISECONDS * 5;
     //private MainActivityLocationCallback callback = new MainActivityLocationCallback(this);
     private Handler handler = new Handler();
+    private int value2= 0 ;
     List<LegStep> steps;
     ArrayList sarr = new ArrayList();
 
@@ -153,6 +157,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
+
+
 //                        NavigationViewOptions.Builder builder = NavigationViewOptions.builder();
 //                        builder.navigationListener(MainActivity.this);
 //                        builder.directionsRoute(currentRoute);
@@ -168,46 +174,91 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                             @Override
                             public void run() {
-
+                                String demo ="";
                                 int num =sarr.size();
+                                int counter = 0;
                                 Log.d("numm", (String) sarr.get(num-1));
                                 int value=0;
+
                                 while(value !=num){
                                     Process logcat;
                                     final StringBuilder log = new StringBuilder();
                                     try {
-                                        logcat = Runtime.getRuntime().exec(new String[]{"logcat", "-d"});
+                                        logcat = Runtime.getRuntime().exec("/system/bin/logcat -d | tail -n 1");//Runtime.getRuntime().exec(new String[]{"logcat", "-d"});
                                         BufferedReader br = new BufferedReader(new InputStreamReader(logcat.getInputStream()),4*1024);
                                         String line;
 
-                                        String separator = System.getProperty("line.separator");
+
+
                                         while ((line = br.readLine()) != null) {
 
-                                            //Log.d("logcat", "hello");
-                                            if(line.contains("Media")){
 
-                                                Log.d("logcat", "hmmm");
-                                                String val = (String) sarr.get(value);
-                                                Log.d("final",val);
-                                                value ++;
 
-                                            }
-                                            else{
-                                                try {
-                                                    Log.d("logcat2","In Here");
-                                                    Runtime.getRuntime().exec(new String[]{"logcat", "-c"});
-                                                } catch (Exception e1) {
-                                                    e1.printStackTrace();
+                                            if(line.contains(" mediaplayer went away with unhandled events")) {
+                                                if(!demo.equals(line)) {
+
+                                                    //Log.d("value2", String.valueOf(value2));
+                                                    //counter ++;
+                                                    // Log.d("counter", String.valueOf(counter));
+                                                    //                                          if(counter %2 != 0) {
+
+                                                    String val = (String) sarr.get(value);
+
+                                                    Log.d("final", (String) sarr.get(value));
+                                                    value++;
+                                                    demo = line;
+                                                    //Thread.sleep(2000);
+
+
+                                               if( !val.matches(".*\\d.*")){
+                                                    if (val.contains("left")) {
+                                                        //Log.d("Left", "1");
+                                                        value2 =+1 ;
+
+                                                  } else if (val.contains("right")) {
+                                                       // Log.d("right", "2");
+                                                    }
+                                              }//end of regex
+
+
+                                                    //break;
+                                                    //}
+
+                                                    //Thread.sleep(8000);
+
+
                                                 }
+                                                else{
+                                                    Log.v("else ","part");
+                                                }
+                                            }
+                                               /* else {
+                                                    try {
 
+                                                        Runtime.getRuntime().exec(new String[]{"logcat", "-c"});
+                                                    } catch (Exception e1) {
+                                                        e1.printStackTrace();
+                                                    }
+
+                                                }*/
+
+                                            try {
+
+                                                Runtime.getRuntime().exec("logcat -b all -c");
+                                            } catch (Exception e1) {
+                                                e1.printStackTrace();
                                             }
 
                                         }
                         } catch (IOException e) {
                                         e.printStackTrace();
-                                    }}}});
+                                    }
+                                    //LogsUtil.readLogs();
+
+                                }}});
                         t1.start();
 
+                        Log.d("value2 " , String.valueOf(value2));
 
                                 //Log.d("TESTTTTT", "test");
 
@@ -390,7 +441,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                         currentRoute = response.body().routes().get(0);
 
-                       // Log.d("currentRoute", currentRoute.toString());
+                        Log.d("", currentRoute.toString());
                        // Log.d("manuever", currentRoute.legs().get(0).steps().get(0).maneuver().instruction());
                         //Log.d("manueverList", currentRoute.legs().get(0).steps().toString());
 
@@ -399,11 +450,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                         steps = response.body().routes().get(0).legs().get(0).steps();
 
+                        Log.d("voiceInstruction", String.valueOf(steps.get(1).voiceInstructions().get(1).announcement()));
+
+                        for(LegStep l:steps){
+
+                            for( VoiceInstructions i : l.voiceInstructions()) {
+                                if (i.announcement() != null) {
+                                    Log.d("announsemnent", i.announcement().toString());
+                                    sarr.add(i.announcement().toString());
+                                }
+                            }
+
+                        }
+
+
+
+
+
                         for (LegStep l : steps) {
                             if (l.maneuver() != null) {
-                                //Log.d("==>", l.maneuver().instruction().toString());
+                                      //  Log.d("==>", l.maneuver().instruction().toString());
 
-                               sarr.add(l.maneuver().instruction().toString());
+                               //sarr.add(l.maneuver().instruction().toString());
 
                             }
                         }
